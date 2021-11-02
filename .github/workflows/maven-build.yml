@@ -44,7 +44,7 @@ jobs:
     - name: Build the Docker image
       run: |-
          docker build . --file Dockerfile \
-         --buid-arg MYSQL_USER="${{ steps.secrets.outputs.username }}" --build-arg MYSQL_PASSWORD="${{ steps.secrets.outputs.password }}" \
+         --build-arg MYSQL_USER="${{ steps.secrets.outputs.username }}" --build-arg MYSQL_PASSWORD="${{ steps.secrets.outputs.password }}" \
          --build-arg MYSQL_ROOT_PASSWORD="${{ steps.secrets.outputs.root_passwd }}" \
          -t gcr.io/$PROJECT_ID/$IMAGE_NAME:$TAGS
     
