@@ -1,10 +1,13 @@
 FROM openjdk:17-jdk-alpine
 
-ENV		MYSQL_USER=petclinic \
-		MYSQL_PASS=petclinic \
-		MYSQL_URL=jdbc:mysql://database/petclinic \
+ARG		MYSQL_USER=petclinic
+ARG		MYSQL_PASSWORD=petclinic
+ARG     MYSQL_ROOT_PASSWORD=petclinic
+
+ENV		MYSQL_URL=jdbc:mysql://database/petclinic \
 		DATABASE=h2 \
 		JAVA_OPTS=""
+
 
 COPY ./target /usr/src/myapp
 
