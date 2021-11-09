@@ -1,6 +1,3 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
 name: Java CI with Maven
 
 on:
@@ -13,32 +10,48 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env:
+       IMAGE_NAME: spring-petclinic
+       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+       TAGS: v4
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
           java-version: '11'
           distribution: 'adopt'
           cache: maven
       # exection permission
-      - name: adding execution mode 
-        run: chmod +x mvnw
-      - name: Build with Maven Wrapper
-        run: ./mvnw -B package
-      - name: GCP SKD setup
-        uses: google-github-actions/setup-gcloud@master
-        with:
-           project_id: ${{ secrets.GCP_PROJECT_ID }}
-           service_account_key: ${{ secrets.GCP_SA_KEY }}
-           export_default_credentials: true
-      - name: Build & Push image to GCP
-        uses: mr-smithers-excellent/docker-build-push@v5
-        with:
-            image: nice-proposal-229011/spring-petclinic
-            tags: v1
-            registry: gcr.io 
-            username: _json_key
-            password: ${{ secrets.GCP_SA_KEY }}
-
+    - name: adding execution mode 
+      run: chmod +x mvnw
+    - name: Build with Maven Wrapper
+      run: ./mvnw -B package
+    - name: GCP SKD setup  
+      uses: google-github-actions/setup-gcloud@master
+      with:
+              project_id: ${{ secrets.GCP_PROJECT_ID }}
+              service_account_key: ${{ secrets.GCP_SA_KEY }}
+              export_default_credentials: true
+    - name: Get the secrets
+      uses: google-github-actions/get-secretmanager-secrets@main
+      with:
+              secrets: |-
+                  username:nice-proposal-229011/mysql_user
+                  password:nice-proposal-229011/mysql_password
+                  root_passwd:nice-proposal-229011/mysql_root_password
+    - name: Build the Docker image
+      run: |-
+         docker build . --file Dockerfile \
+         --build-arg MYSQL_USER="${{ steps.secrets.outputs.username }}" --build-arg MYSQL_PASSWORD="${{ steps.secrets.outputs.password }}" \
+         --build-arg MYSQL_ROOT_PASSWORD="${{ steps.secrets.outputs.root_passwd }}" \
+         -t gcr.io/$PROJECT_ID/$IMAGE_NAME:$TAGS
+    
+    - name: Docker GCP credential helper in cmd
+      run: |
+         gcloud auth configure-docker -q
+     
+    - name: Push image to GCR
+      run: |-
+          docker push gcr.io/$PROJECT_ID/$IMAGE_NAME:$TAGS
